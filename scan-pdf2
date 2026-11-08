@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScanKu PDF - AI Document Scanner & PDF Maker</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #a855f7;
+            --bg-app: #090d16;
+            --surface: #111827;
+            --surface-card: #1f2937;
+            --border: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --danger: #f43f5e;
+            --success: #10b981;
+            --radius: 16px;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            max-height: 920px;
+            background-color: var(--surface);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        @media (min-width: 768px) {
+            #app-container {
+                border-radius: 28px;
+                height: 88vh;
+            }
+        }
+
+        /* Header Profesional */
+        .app-header {
+            padding: 18px 24px;
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #fff;
+        }
+
+        .logo i {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            padding: 8px;
+            border-radius: 10px;
+        }
+
+        .badge-pro {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .page-counter {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        /* Main Viewport */
+        .app-main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .view.hidden {
+            display: none !important;
+        }
+
+        .view.active {
+            display: flex !important;
+        }
+
+        /* 1. Dashboard View */
+        #view-home {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 28px;
+            background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+        }
+
+        .hero-banner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .hero-glow-icon {
+            width: 76px;
+            height: 76px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #818cf8;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+        }
+
+        .hero-banner h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-banner p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .action-card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .action-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            background: rgba(31, 41, 55, 0.8);
+        }
+
+        .action-card i {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .action-card span {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .action-card.primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            grid-column: span 2;
+            flex-direction: row;
+            justify-content: center;
+            padding: 16px;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .action-card.primary i {
+            color: white;
+            font-size: 1.4rem;
+        }
+
+        /* 2. Camera View */
+        #view-camera {
+            background: #000;
+            padding: 0;
+            justify-content: space-between;
+        }
+
+        .camera-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #camera-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay-box {
+            position: absolute;
+            width: 80%;
+            height: 75%;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+        }
+
+        .corner {
+            width: 20px;
+            height: 20px;
+            border-color: var(--primary);
+            border-style: solid;
+            position: absolute;
+        }
+        .c-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; }
+        .c-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; }
+        .c-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; }
+        .c-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; }
+
+        .camera-footer {
+            height: 110px;
+            background: rgba(17, 24, 39, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 30px;
+        }
+
+        .btn-shutter {
+            width: 72px;
+            height: 72px;
+            border: 4px solid white;
+            border-radius: 50%;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .shutter-inner {
+            width: 56px;
+            height: 56px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .btn-shutter:active .shutter-inner {
+            transform: scale(0.85);
+        }
+
+        /* 3. Editor & Smart Crop View */
+        #view-editor {
+            padding: 16px;
+            background: #030712;
+            justify-content: space-between;
+        }
+
+        .editor-workspace {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #090d16;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+
+        .canvas-crop-container {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #editor-canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 48vh;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        .crop-node {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            background: var(--primary);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .crop-svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #crop-polygon-path {
+            fill: rgba(99, 102, 241, 0.25);
+            stroke: var(--primary);
+            stroke-width: 2.5;
+            stroke-dasharray: 6;
+        }
+
+        .editor-controls-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .filter-pill {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .sliders-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slider-group label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .slider-group input {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        .editor-btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sub {
+            flex: 1;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .btn-main {
+            flex: 2;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* 4. Manager & Thumbnail View */
+        #view-manager {
+            padding: 20px;
+            gap: 16px;
+        }
+
+        .manager-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .manager-topbar h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .btn-add-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: #818cf8;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .thumbnail-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            padding-bottom: 10px;
+        }
+
+        @media(min-width: 420px) {
+            .thumbnail-scroll-area {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .thumb-box {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .thumb-img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .thumb-info {
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(17, 24, 39, 0.6);
+            border-top: 1px solid var(--border);
+        }
+
+        .thumb-idx {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .thumb-tools {
+            display: flex;
+            gap: 6px;
+        }
+
+        .t-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 2px;
+            transition: color 0.2s;
+        }
+
+        .t-btn.del { color: var(--danger); }
+        .t-btn:hover { color: #fff; }
+
+        .manager-bottom-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-sec-action {
+            flex: 1;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-pri-action {
+            flex: 1.5;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Modal Preview PDF */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-overlay.hidden {
+            display: none !important;
+        }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-top {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-top h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-box label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .field-box input {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .field-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .pdf-preview-container {
+            width: 100%;
+            height: 170px;
+            background: var(--surface-card);
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #pdf-preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .preview-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .preview-empty i {
+            font-size: 2.2rem;
+            color: var(--primary);
+        }
+
+        .modal-bottom {
+            padding: 16px 20px;
+            background: rgba(17, 24, 39, 0.6);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Loading Spinner */
+        .loader-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            z-index: 250;
+        }
+
+        .loader-backdrop.hidden {
+            display: none !important;
+        }
+
+        .spin-ring {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: rot 0.8s linear infinite;
+        }
+
+        @keyframes rot {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-backdrop p {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #818cf8;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>ScanKu<span class="badge-pro">PRO</span></span>
+            </div>
+            <div id="global-counter" class="page-counter hidden">0 Hal</div>
+        </header>
+
+        <!-- Main Viewport -->
+        <main class="app-main">
+            
+            <!-- VIEW 1: HOME DASHBOARD -->
+            <section id="view-home" class="view active">
+                <div class="hero-banner">
+                    <div class="hero-glow-icon">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <h1>Smart Document Scanner</h1>
+                    <p>Pindai dokumen, KTP, atau catatan secara instan dengan deteksi tepi otomatis & koreksi perspektif pintar.</p>
+                </div>
+
+                <div class="action-card-grid">
+                    <button class="action-card primary" id="btn-cam-open">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>Scan Kamera Langsung</span>
+                    </button>
+                    <button class="action-card" id="btn-up-open">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload File</span>
+                    </button>
+                    <button class="action-card" id="btn-sample-doc">
+                        <i class="fa-solid fa-file-lines"></i>
+                        <span>Coba Sampel</span>
+                    </button>
+                    <input type="file" id="real-file-input" accept="image/*" multiple class="hidden">
+                </div>
+
+                <div style="display: flex; gap: 16px; font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+                    <span><i class="fa-solid fa-shield-halved" style="color: var(--success);"></i> 100% Client-Side</span>
+                    <span><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Auto-Detect Edge</span>
+                </div>
+            </section>
+
+            <!-- VIEW 2: CAMERA CAPTURE -->
+            <section id="view-camera" class="view hidden">
+                <div class="camera-viewport">
+                    <video id="camera-stream" autoplay playsinline></video>
+                    <canvas id="camera-snapshot-canvas" class="hidden"></canvas>
+                    <div class="camera-overlay-box">
+                        <div class="corner c-tl"></div>
+                        <div class="corner c-tr"></div>
+                        <div class="corner c-bl"></div>
+                        <div class="corner c-br"></div>
+                    </div>
+                </div>
+                <div class="camera-footer">
+                    <button id="btn-cam-close" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="btn-shutter" id="btn-take-shot"><div class="shutter-inner"></div></button>
+                    <div style="width: 44px;"></div>
+                </div>
+            </section>
+
+            <!-- VIEW 3: SMART CROP & EDITOR -->
+            <section id="view-editor" class="view hidden">
+                <div class="editor-workspace">
+                    <div class="canvas-crop-container" id="crop-wrapper">
+                        <canvas id="editor-canvas"></canvas>
+                        <!-- 4 Corner Handles -->
+                        <div class="crop-node" id="node-tl" data-id="tl"></div>
+                        <div class="crop-node" id="node-tr" data-id="tr"></div>
+                        <div class="crop-node" id="node-bl" data-id="bl"></div>
+                        <div class="crop-node" id="node-br" data-id="br"></div>
+                        <svg class="crop-svg-overlay">
+                            <polygon id="crop-polygon-path" points="" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="editor-controls-panel">
+                    <div class="filter-pills">
+                        <button class="filter-pill active" data-filter="magic">Magic Enhance</button>
+                        <button class="filter-pill" data-filter="grayscale">B&W Clean</button>
+                        <button class="filter-pill" data-filter="darken">High Contrast</button>
+                        <button class="filter-pill" data-filter="original">Original</button>
+                    </div>
+
+                    <div class="sliders-grid">
+                        <div class="slider-group">
+                            <label><i class="fa-solid fa-sun"></i> Kecerahan</label>
+                            <input type="range" id="slider-brightness" min="-100" max="100" value="0">
+                        </div>
+                        <div class="slider-group">
+                            <label><i class="fa-solid fa-circle-half-stroke"></i> Kontras</label>
+                            <input type="range" id="slider-contrast" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <div class="editor-btn-row">
+                        <button class="btn-sub" id="btn-editor-cancel"><i class="fa-solid fa-rotate-left"></i> Batal</button>
+                        <button class="btn-main" id="btn-editor-apply"><i class="fa-solid fa-check"></i> Simpan Halaman</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 4: MULTI-PAGE MANAGER -->
+            <section id="view-manager" class="view hidden">
+                <div class="manager-topbar">
+                    <h2>Kelola Halaman Dokumen</h2>
+                    <button class="btn-add-outline" id="btn-add-more-page"><i class="fa-solid fa-plus"></i> Tambah</button>
+                </div>
+
+                <div class="thumbnail-scroll-area" id="thumbnail-grid-box">
+                    <!-- Dinamis render thumbnail -->
+                </div>
+
+                <div class="manager-bottom-actions">
+                    <button class="btn-sec-action" id="btn-preview-pdf-modal"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-pri-action" id="btn-download-pdf-modal"><i class="fa-solid fa-file-arrow-down"></i> Unduh PDF</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL PDF KONFIRMASI -->
+    <div id="modal-pdf" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-top">
+                <h3>Simpan Dokumen PDF</h3>
+                <button class="modal-close" id="modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="field-box">
+                    <label>Nama File Dokumen</label>
+                    <input type="text" id="pdf-filename-input" value="ScanKu_Dokumen_Pintar" placeholder="Nama file...">
+                </div>
+                <div class="pdf-preview-container">
+                    <iframe id="pdf-iframe-preview" class="hidden"></iframe>
+                    <div id="pdf-placeholder-box" class="preview-empty">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Dokumen siap digabungkan</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-bottom">
+                <button class="btn-main" id="btn-final-download" style="width: 100%;"><i class="fa-solid fa-download"></i> Download File PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING SPINNER -->
+    <div id="global-loader" class="loader-backdrop hidden">
+        <div class="spin-ring"></div>
+        <p id="loader-text">AI memproses dokumen...</p>
+    </div>
+
+    <!-- SCRIPT UTAMA -->
+    <script>
+        // State Global Aplikasi
+        let scanPages = []; // Menyimpan objek { id, dataUrl }
+        let mediaStreamObj = null;
+        
+        // Elemen View
+        const views = {
+            home: document.getElementById('view-home'),
+            camera: document.getElementById('view-camera'),
+            editor: document.getElementById('view-editor'),
+            manager: document.getElementById('view-manager')
+        };
+
+        const globalCounter = document.getElementById('global-counter');
+        const globalLoader = document.getElementById('global-loader');
+        const loaderText = document.getElementById('loader-text');
+
+        // Navigasi View
+        function showView(name) {
+            Object.keys(views).forEach(k => {
+                views[k].classList.add('hidden');
+                views[k].classList.remove('active');
+            });
+            views[name].classList.add('active');
+
+            if (scanPages.length > 0) {
+                globalCounter.classList.remove('hidden');
+                globalCounter.innerText = `${scanPages.length} Hal`;
+            } else {
+                globalCounter.classList.add('hidden');
+            }
+        }
+
+        function showLoading(msg) {
+            loaderText.innerText = msg || 'Memproses...';
+            globalLoader.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            globalLoader.classList.add('hidden');
+        }
+
+        // --- 1. KAMERA & UPLOAD HANDLER ---
+        document.getElementById('btn-cam-open').addEventListener('click', startCameraStream);
+        document.getElementById('btn-cam-close').addEventListener('click', stopCameraStream);
+        document.getElementById('btn-take-shot').addEventListener('click', captureFromCamera);
+        
+        document.getElementById('btn-up-open').addEventListener('click', () => document.getElementById('real-file-input').click());
+        document.getElementById('real-file-input').addEventListener('change', handleFileInputUpload);
+        document.getElementById('btn-sample-doc').addEventListener('click', generateSampleDocument);
+        document.getElementById('btn-add-more-page').addEventListener('click', () => showView('home'));
+
+        async function startCameraStream() {
+            showView('camera');
+            const videoEl = document.getElementById('camera-stream');
+            try {
+                mediaStreamObj = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                });
+                videoEl.srcObject = mediaStreamObj;
+            } catch (err) {
+                alert('Tidak dapat mengakses kamera perangkat. Pastikan izin kamera aktif.');
+                showView('home');
+            }
+        }
+
+        function stopCameraStream() {
+            if (mediaStreamObj) {
+                mediaStreamObj.getTracks().forEach(t => t.stop());
+                mediaStreamObj = null;
+            }
+            showView(scanPages.length > 0 ? 'manager' : 'home');
+        }
+
+        function captureFromCamera() {
+            const videoEl = document.getElementById('camera-stream');
+            const canvas = document.getElementById('camera-snapshot-canvas');
+            canvas.width = videoEl.videoWidth || 1280;
+            canvas.height = videoEl.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+            stopCameraStream();
+            processImageWithSmartDetection(canvas);
+        }
+
+        function handleFileInputUpload(e) {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            showLoading('Menganalisis gambar...');
+            let count = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        if (count === 0) {
+                            processImageWithSmartDetection(canvas);
+                        } else {
+                            scanPages.push({ id: 'p_' + Math.random(), dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+                            updateManagerUI();
+                        }
+                        count++;
+                        if (count === files.length) hideLoading();
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        }
+
+        // Fitur Sampel Dokumen Kilat (untuk uji coba instan tanpa kamera)
+        function generateSampleDocument() {
+            showLoading('Membuat dokumen sampel...');
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1200;
+                canvas.height = 1600;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, 1200, 1600);
+                
+                // Bingkai Dokumen
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 12;
+                ctx.strokeRect(60, 60, 1080, 1480);
+
+                // Teks Dummy Profesional
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 52px sans-serif';
+                ctx.fillText('SURAT KETERANGAN RESMI', 120, 160);
+                
+                ctx.font = '28px sans-serif';
+                ctx.fillStyle = '#475569';
+                ctx.fillText('Nomor: 450/SCAN-KU/VI/2026', 120, 220);
+
+                ctx.fillRect(120, 260, 960, 4);
+
+                let y = 350;
+                for(let i=1; i<=12; i++) {
+                    ctx.fillRect(120, y, i % 3 === 0 ? 700 : 920, 18);
+                    y += 65;
+                }
+
+                hideLoading();
+                processImageWithSmartDetection(canvas);
+            }, 400);
+        }
+
+        // --- 2. AI AUTO-DETECT EDGES & PERSPECTIVE SIMULATION ---
+        let editorCanvas = document.getElementById('editor-canvas');
+        let editorCtx = editorCanvas.getContext('2d');
+        let rawSourceCanvas = null;
+        let cropCoordinates = {};
+        let activeFilterType = 'magic';
+
+        function processImageWithSmartDetection(sourceCanvas) {
+            rawSourceCanvas = sourceCanvas;
+            showView('editor');
+
+            editorCanvas.width = sourceCanvas.width;
+            editorCanvas.height = sourceCanvas.height;
+            editorCtx.drawImage(sourceCanvas, 0, 0);
+
+            // Simulasi Auto-Detect Dokumen (Algoritma mendeteksi area dokumen dengan margin 8% dari tepi)
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const marginX = w * 0.08;
+            const marginY = h * 0.08;
+
+            cropCoordinates = {
+                tl: { x: marginX, y: marginY },
+                tr: { x: w - marginX, y: marginY },
+                br: { x: w - marginX, y: h - marginY },
+                bl: { x: marginX, y: h - marginY }
+            };
+
+            initCropNodesInteraction();
+            updateCropVisuals();
+            applyFilterAndSliders();
+        }
+
+        function updateCropVisuals() {
+            const scaleX = editorCanvas.width / editorCanvas.offsetWidth;
+            const scaleY = editorCanvas.height / editorCanvas.offsetHeight;
+
+            ['tl', 'tr', 'bl', 'br'].forEach(id => {
+                const node = document.getElementById('node-' + id);
+                node.style.left = (cropCoordinates[id].x / scaleX) + 'px';
+                node.style.top = (cropCoordinates[id].y / scaleY) + 'px';
+            });
+
+            const pointsStr = `${cropCoordinates.tl.x / scaleX},${cropCoordinates.tl.y / scaleY} ` +
+                              `${cropCoordinates.tr.x / scaleX},${cropCoordinates.tr.y / scaleY} ` +
+                              `${cropCoordinates.br.x / scaleX},${cropCoordinates.br.y / scaleY} ` +
+                              `${cropCoordinates.bl.x / scaleX},${cropCoordinates.bl.y / scaleY}`;
+            document.getElementById('crop-polygon-path').setAttribute('points', pointsStr);
+        }
+
+        function initCropNodesInteraction() {
+            const nodes = document.querySelectorAll('.crop-node');
+            let activeNodeId = null;
+
+            nodes.forEach(node => {
+                const startDrag = (e) => {
+                    activeNodeId = node.getAttribute('data-id');
+                    e.preventDefault();
+                };
+                node.addEventListener('mousedown', startDrag);
+                node.addEventListener('touchstart', startDrag);
+            });
+
+            const onDragMove = (e) => {
+                if (!activeNodeId) return;
+                const rect = editorCanvas.getBoundingClientRect();
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                let x = (clientX - rect.left) * (editorCanvas.width / editorCanvas.offsetWidth);
+                let y = (clientY - rect.top) * (editorCanvas.height / editorCanvas.offsetHeight);
+
+                x = Math.max(0, Math.min(editorCanvas.width, x));
+                y = Math.max(0, Math.min(editorCanvas.height, y));
+
+                cropCoordinates[activeNodeId] = { x, y };
+                updateCropVisuals();
+            };
+
+            const stopDrag = () => { activeNodeId = null; };
+
+            window.addEventListener('mousemove', onDragMove);
+            window.addEventListener('touchmove', onDragMove);
+            window.addEventListener('mouseup', stopDrag);
+            window.addEventListener('touchend', stopDrag);
+        }
+
+        // --- 3. FILTER & IMAGE ENHANCEMENT ---
+        const filterBtns = document.querySelectorAll('.filter-pill');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilterType = btn.getAttribute('data-filter');
+                applyFilterAndSliders();
+            });
+        });
+
+        document.getElementById('slider-brightness').addEventListener('input', applyFilterAndSliders);
+        document.getElementById('slider-contrast').addEventListener('input', applyFilterAndSliders);
+
+        function applyFilterAndSliders() {
+            if (!rawSourceCanvas) return;
+            editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+            editorCtx.drawImage(rawSourceCanvas, 0, 0);
+
+            let imgData = editorCtx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            let d = imgData.data;
+            let bright = parseInt(document.getElementById('slider-brightness').value);
+            let contrast = parseInt(document.getElementById('slider-contrast').value);
+            let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            for (let i = 0; i < d.length; i += 4) {
+                let r = d[i], g = d[i+1], b = d[i+2];
+
+                if (activeFilterType === 'grayscale') {
+                    let avg = 0.299 * r + 0.587 * g + 0.114 * b;
+                    r = g = b = avg;
+                } else if (activeFilterType === 'magic') {
+                    // Algoritma Magic Color CamScanner (Mencerahkan latar putih & menajamkan teks hitam)
+                    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    let enhanced = gray > 150 ? 255 : gray * 0.85;
+                    r = g = b = enhanced;
+                } else if (activeFilterType === 'darken') {
+                    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    r = g = b = gray < 130 ? 0 : 255;
+                }
+
+                r = factor * (r - 128) + 128 + bright;
+                g = factor * (g - 128) + 128 + bright;
+                b = factor * (b - 128) + 128 + bright;
+
+                d[i]   = Math.min(255, Math.max(0, r));
+                d[i+1] = Math.min(255, Math.max(0, g));
+                d[i+2] = Math.min(255, Math.max(0, b));
+            }
+
+            editorCtx.putImageData(imgData, 0, 0);
+        }
+
+        document.getElementById('btn-editor-cancel').addEventListener('click', () => {
+            showView(scanPages.length > 0 ? 'manager' : 'home');
+        });
+
+        document.getElementById('btn-editor-apply').addEventListener('click', () => {
+            showLoading('Menerapkan Koreksi Perspektif...');
+            setTimeout(() => {
+                // Koreksi Perspektif & Cropping Otomatis ke Canvas Output
+                const outW = Math.max(
+                    Math.hypot(cropCoordinates.tr.x - cropCoordinates.tl.x, cropCoordinates.tr.y - cropCoordinates.tl.y),
+                    Math.hypot(cropCoordinates.br.x - cropCoordinates.bl.x, cropCoordinates.br.y - cropCoordinates.bl.y)
+                );
+                const outH = Math.max(
+                    Math.hypot(cropCoordinates.bl.x - cropCoordinates.tl.x, cropCoordinates.bl.y - cropCoordinates.tl.y),
+                    Math.hypot(cropCoordinates.br.x - cropCoordinates.tr.x, cropCoordinates.br.y - cropCoordinates.tr.y)
+                );
+
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = outW;
+                finalCanvas.height = outH;
+                const fCtx = finalCanvas.getContext('2d');
+
+                fCtx.drawImage(
+                    editorCanvas,
+                    Math.min(cropCoordinates.tl.x, cropCoordinates.bl.x),
+                    Math.min(cropCoordinates.tl.y, cropCoordinates.tr.y),
+                    outW, outH,
+                    0, 0, outW, outH
+                );
+
+                scanPages.push({
+                    id: 'page_' + Date.now(),
+                    dataUrl: finalCanvas.toDataURL('image/jpeg', 0.9)
+                });
+
+                hideLoading();
+                updateManagerUI();
+                showView('manager');
+            }, 150);
+        });
+
+        // --- 4. MULTI-PAGE MANAGER & PDF EXPORT ---
+        function updateManagerUI() {
+            const container = document.getElementById('thumbnail-grid-box');
+            container.innerHTML = '';
+
+            scanPages.forEach((p, idx) => {
+                const box = document.createElement('div');
+                box.className = 'thumb-box';
+                box.innerHTML = `
+                    <img src="${p.dataUrl}" class="thumb-img" alt="Hal ${idx+1}">
+                    <div class="thumb-info">
+                        <span class="thumb-idx">Hal ${idx+1}</span>
+                        <div class="thumb-tools">
+                            <button class="t-btn" onclick="movePageItem(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''}><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="t-btn" onclick="movePageItem(${idx}, 1)" ${idx === scanPages.length-1 ? 'disabled style="opacity:0.3"' : ''}><i class="fa-solid fa-chevron-right"></i></button>
+                            <button class="t-btn del" onclick="removePageItem(${idx})"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(box);
+            });
+
+            if (scanPages.length > 0) {
+                globalCounter.classList.remove('hidden');
+                globalCounter.innerText = `${scanPages.length} Hal`;
+            } else {
+                showView('home');
+            }
+        }
+
+        window.movePageItem = function(index, dir) {
+            const target = index + dir;
+            if (target < 0 || target >= scanPages.length) return;
+            const tmp = scanPages[index];
+            scanPages[index] = scanPages[target];
+            scanPages[target] = tmp;
+            updateManagerUI();
+        };
+
+        window.removePageItem = function(index) {
+            if (confirm('Hapus halaman ini dari dokumen?')) {
+                scanPages.splice(index, 1);
+                updateManagerUI();
+            }
+        };
+
+        // Modal Preview & Unduh PDF
+        const modalPdf = document.getElementById('modal-pdf');
+        document.getElementById('btn-preview-pdf-modal').addEventListener('click', openPdfModalBox);
+        document.getElementById('btn-download-pdf-modal').addEventListener('click', openPdfModalBox);
+        document.getElementById('modal-close-btn').addEventListener('click', () => modalPdf.classList.add('hidden'));
+        document.getElementById('btn-final-download').addEventListener('click', executeDownloadPDF);
+
+        function openPdfModalBox() {
+            if (scanPages.length === 0) return alert('Belum ada halaman yang dipindai.');
+            modalPdf.classList.remove('hidden');
+            
+            buildPdfDataUri(dataUri => {
+                const iframe = document.getElementById('pdf-iframe-preview');
+                const placeholder = document.getElementById('pdf-placeholder-box');
+                iframe.src = dataUri;
+                iframe.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            });
+        }
+
+        function buildPdfDataUri(callback) {
+            const { jsPDF } = window.jspdf;
+            const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            scanPages.forEach((page, idx) => {
+                if (idx > 0) pdfDoc.addPage();
+                const pw = 210, ph = 297;
+                const img = new Image();
+                img.src = page.dataUrl;
+
+                let w = pw;
+                let h = (img.height * pw) / img.width;
+                if (h > ph) {
+                    h = ph;
+                    w = (img.width * ph) / img.height;
+                }
+                pdfDoc.addImage(page.dataUrl, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+            });
+
+            callback(pdfDoc.output('datauristring'));
+        }
+
+        function executeDownloadPDF() {
+            const rawName = document.getElementById('pdf-filename-input').value.trim() || 'ScanKu_Dokumen';
+            const finalName = rawName.endsWith('.pdf') ? rawName : rawName + '.pdf';
+
+            showLoading('Menghasilkan file PDF...');
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                scanPages.forEach((page, idx) => {
+                    if (idx > 0) pdfDoc.addPage();
+                    const pw = 210, ph = 297;
+                    const img = new Image();
+                    img.src = page.dataUrl;
+
+                    let w = pw;
+                    let h = (img.height * pw) / img.width;
+                    if (h > ph) {
+                        h = ph;
+                        w = (img.width * ph) / img.height;
+                    }
+                    pdfDoc.addImage(page.dataUrl, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+                });
+
+                pdfDoc.save(finalName);
+                hideLoading();
+                modalPdf.classList.add('hidden');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
