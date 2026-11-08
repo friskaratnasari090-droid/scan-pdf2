@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -194,7 +195,6 @@
 
         .cam-frame {
             position: absolute;
-            width: 82% h;
             width: 82%;
             height: 75%;
             border: 2px dashed rgba(255,255,255,0.6);
@@ -620,15 +620,14 @@
         <p id="loader-msg">Memproses...</p>
     </div>
 
-    <!-- SCRIPT APLIKASI UTUH -->
+    <!-- SCRIPT APLIKASI DIOPTIMALKAN -->
     <script>
-        let scannedPages = []; // Menyimpan array gambar hasil scan
+        let scannedPages = [];
         let activeStream = null;
         let sourceImageCanvas = null;
         let cropPts = {};
         let currentFilter = 'magic';
 
-        // Navigasi View
         function changeView(viewId) {
             document.querySelectorAll('.view').forEach(v => {
                 v.classList.add('hidden');
@@ -653,6 +652,31 @@
             document.getElementById('loader').classList.add('hidden');
         }
 
+        // --- FUNGSI KOMPRESI OTOMATIS (Mencegah Lag / Lemot) ---
+        function compressImageToCanvas(imgElement, maxDimension = 1200) {
+            let canvas = document.createElement('canvas');
+            let width = imgElement.width;
+            let height = imgElement.height;
+
+            if (width > height) {
+                if (width > maxDimension) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                }
+            } else {
+                if (height > maxDimension) {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(imgElement, 0, 0, width, height);
+            return canvas;
+        }
+
         // --- 1. KAMERA & UPLOAD ---
         document.getElementById('btn-open-cam').addEventListener('click', startCamera);
         document.getElementById('btn-close-cam').addEventListener('click', stopCamera);
@@ -667,7 +691,7 @@
             const video = document.getElementById('cam-video');
             try {
                 activeStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
                 });
                 video.srcObject = activeStream;
@@ -687,21 +711,25 @@
 
         function captureCamera() {
             const video = document.getElementById('cam-video');
-            const canvas = document.getElementById('cam-canvas');
-            canvas.width = video.videoWidth || 1280;
-            canvas.height = video.videoHeight || 720;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const rawCanvas = document.createElement('canvas');
+            rawCanvas.width = video.videoWidth || 1280;
+            rawCanvas.height = video.videoHeight || 720;
+            rawCanvas.getContext('2d').drawImage(video, 0, 0, rawCanvas.width, rawCanvas.height);
 
             stopCamera();
-            loadIntoEditor(canvas);
+            showLoading('Mengoptimalkan gambar...');
+            setTimeout(() => {
+                const compressedCanvas = compressImageToCanvas(rawCanvas);
+                hideLoading();
+                loadIntoEditor(compressedCanvas);
+            }, 50);
         }
 
         function handleUploadFiles(e) {
             const files = e.target.files;
             if (!files.length) return;
 
-            showLoading('Memuat gambar...');
+            showLoading('Memuat & Mengompres gambar...');
             let loaded = 0;
 
             Array.from(files).forEach(file => {
@@ -709,15 +737,12 @@
                 reader.onload = function(evt) {
                     const img = new Image();
                     img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        canvas.getContext('2d').drawImage(img, 0, 0);
+                        const compressedCanvas = compressImageToCanvas(img);
 
                         if (loaded === 0) {
-                            loadIntoEditor(canvas);
+                            loadIntoEditor(compressedCanvas);
                         } else {
-                            scannedPages.push({ id: 'p_' + Math.random(), dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+                            scannedPages.push({ id: 'p_' + Math.random(), dataUrl: compressedCanvas.toDataURL('image/jpeg', 0.8) });
                             renderManager();
                         }
                         loaded++;
@@ -742,7 +767,6 @@
             edCanvas.height = canvasSource.height;
             edCtx.drawImage(canvasSource, 0, 0);
 
-            // Set posisi awal crop (margin 10%)
             let w = canvasSource.width, h = canvasSource.height;
             cropPts = {
                 tl: { x: w * 0.1, y: h * 0.1 },
@@ -865,7 +889,7 @@
         });
 
         document.getElementById('btn-save-page').addEventListener('click', () => {
-            showLoading('Memproses potongan gambar...');
+            showLoading('Menyimpan halaman...');
             setTimeout(() => {
                 let w = Math.max(
                     Math.hypot(cropPts.tr.x - cropPts.tl.x, cropPts.tr.y - cropPts.tl.y),
@@ -889,13 +913,13 @@
 
                 scannedPages.push({
                     id: 'p_' + Date.now(),
-                    dataUrl: outCanvas.toDataURL('image/jpeg', 0.9)
+                    dataUrl: outCanvas.toDataURL('image/jpeg', 0.8)
                 });
 
                 hideLoading();
                 renderManager();
                 changeView('view-manager');
-            }, 100);
+            }, 50);
         });
 
         // --- 4. MANAGER & PDF EXPORT ---
@@ -946,7 +970,6 @@
             }
         };
 
-        // Modal PDF
         const pdfModal = document.getElementById('pdf-modal');
         document.getElementById('btn-preview-pdf').addEventListener('click', openPdfModal);
         document.getElementById('btn-download-pdf').addEventListener('click', openPdfModal);
@@ -1013,7 +1036,7 @@
                 doc.save(filename);
                 hideLoading();
                 pdfModal.classList.add('hidden');
-            }, 300);
+            }, 100);
         }
     </script>
 </body>
